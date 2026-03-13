@@ -1,0 +1,41 @@
+import { useState, useEffect } from 'react'
+import { supabase } from '../utils/supabase'
+
+export function useAuth() {
+    const [user, setUser] = useState(null)
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setUser(session?.user ?? null)
+            setLoading(false)
+        })
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setUser(session?.user ?? null)
+        })
+
+        return () => subscription.unsubscribe()
+    }, [])
+
+    const signUp = async (email, password) => {
+        const { error } = await supabase.auth.signUp({ email, password })
+        return { error }
+    }
+
+    const signIn = async (email, password) => {
+        const { error } = await supabase.auth.signInWithPassword({ email, password })
+        return { error }
+    }
+
+    const signInWithGoogle = async () => {
+        const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' })
+        return { error }
+    }
+
+    const signOut = async () => {
+        await supabase.auth.signOut()
+    }
+
+    return { user, loading, signUp, signIn, signInWithGoogle, signOut }
+}
